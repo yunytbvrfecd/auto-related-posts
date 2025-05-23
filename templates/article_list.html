@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>記事一覧</title>
+</head>
+<body>
+<ul>
+{% for article in articles %}
+    {% if 'body' in article %}
+        <li>
+            <a href = "/article/{{ article['article_id'] }}">
+                <strong>{{ article['title'] }}</strong>
+            </a>: {{ article['body'][:50] }}...
+        </li>
+    {% else %}
+        <li>
+            <a href = "/article/{{ article['article_id'] }}">
+                <strong>{{ article['title'] }}</strong>
+            </a>: 本文なし
+        </li>
+    {% endif %}
+{% endfor %}
+</ul>
+
+<a href="/">新しい記事を投稿する</a>
+</body>
+</html>
