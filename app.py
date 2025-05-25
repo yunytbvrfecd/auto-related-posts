@@ -1,7 +1,6 @@
 from flask import Flask, render_template, request, redirect, url_for
 import uuid
 import boto3
-from Dynamoview import article_id
 from extract_keywords import extract_keywords
 
 dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
