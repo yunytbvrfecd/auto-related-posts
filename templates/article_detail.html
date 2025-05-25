@@ -9,6 +9,23 @@
     <p><strong>記事ID:</strong> {{ article.article_id }}</p>
     <p><strong>本文:</strong><br>{{ article.body }}</p>
     <p><strong>キーワード:</strong> {{ article.keywords }}</p>
+
+    <h2>関連記事</h2>
+{% if related_articles %}
+    <ul>
+        {% for related in related_articles %}
+            <li>
+                <a href="{{ url_for('show_article', article_id=related.article_id) }}">
+                    {{ related.title }}
+                </a>
+            </li>
+        {% endfor %}
+    </ul>
+{% else %}
+    <p>関連記事は見つかりませんでした。</p>
+{% endif %}
+
+
     <p><a href="/article_list">← 記事一覧に戻る</a></p>
 </body>
 </html>

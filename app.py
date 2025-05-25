@@ -4,6 +4,9 @@ import boto3
 from Dynamoview import article_id
 from extract_keywords import extract_keywords
 
+dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
+table = dynamodb.Table('test-articles')
+
 app = Flask(__name__)
 
 @app.route('/')
@@ -30,9 +33,6 @@ def postarticle():
     article_id = str(uuid.uuid4())
     keywords = extract_keywords(article_text)
 
-    dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
-    table = dynamodb.Table('test-articles')
-
     try:
         table.put_item(
             Item={
@@ -56,24 +56,54 @@ def postarticle():
 
 @app.route('/article_list')
 def show_article_list():
-    dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
-    table = dynamodb.Table('test-articles')
     response = table.scan()
     items = response['Items']
     return render_template('article_list.html',articles=items)
 
+def find_related_articles(current_article, all_articles):
+    current_keywords = set(current_article['keywords'])
+    related = []
+
+    for article in all_articles:
+        if article['article_id'] == current_article['article_id']:
+            continue  # 自分自身は除外
+
+        score = len(current_keywords & set(article['keywords']))
+        if score >= 2:
+            related.append((article, score))
+
+    # スコア順に並べて上位5件まで返す
+    related.sort(key=lambda x: x[1], reverse=True)
+    return [item[0] for item in related[:5]]
+
+
 @app.route('/article/<article_id>')
-def article_detail(article_id):
-    dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
-    table = dynamodb.Table('test-articles')
+def show_article(article_id):
     try:
-        response = table.get_item(Key={'article_id': article_id})
-        item = response.get('Item')
-        if not item:
+        article = get_article_by_id(article_id)
+        if not article:
             return "記事が見つかりませんでした。"
-        return render_template('article_detail.html', article=item)
+
+        all_articles = get_all_articles()
+        related_articles = find_related_articles(article, all_articles)
+
+        return render_template(
+            'article_detail.html',  # ← こちらに統一
+            article=article,
+            related_articles=related_articles
+        )
     except Exception as e:
         return f"取得エラー: {e}"
+
+#記事をIDで取得する関数
+def get_article_by_id(article_id):
+    response = table.get_item(Key={'article_id': article_id})
+    return response.get('Item')
+
+#記事を全件取得する関数（最大1MBまで）
+def get_all_articles():
+    response = table.scan()
+    return response.get('Items', [])
 
 if __name__ == '__main__':
     app.run(debug=True)
