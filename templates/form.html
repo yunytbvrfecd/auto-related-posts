@@ -1,30 +1,47 @@
-<!DOCTYPE html>
-<html lang="en" style="background-color:lightgray">
-<head>
-    <meta charset="UTF-8">
-    <title>記事作成フォーム</title>
-    <script>
-        function updateCount(input,count,max){
-            const text = document.getElementById(input);
-            const counter = document.getElementById(count);
-            counter.textContent = `${text.value.length}/${max}`;
-        }
-    </script>
-</head>
-<body>
+{% extends 'base.html' %}
+
+{% block title %}記事作成フォーム{% endblock %}
+
+{% block content %}
 <h1>記事の入力フォーム</h1>
+
 <form method="post" action="/postarticle">
-    <input type="text" id = "title" name="title" placeholder="<記事タイトル>" required minlength="5" oninput="updateCount('title','title-count',30)">
-    <span id="title-count">0/30文字</span>
-    <br><br>
-    <textarea id = "articletxt" name ="articletxt" style="width: 90%; height: 300px;" placeholder="<本文>" required minlength="10" oninput="updateCount('articletxt','body-count',5000)"></textarea>
-    <span id="body-count">0/5000文字</span>
-    <br><br>
-    <p><input
-    type="submit"
-    value ="作成"
-    ></p>
+  <input
+    type="text"
+    id="title"
+    name="title"
+    placeholder="<記事タイトル>"
+    required
+    minlength="5"
+    oninput="updateCount('title','title-count',30)"
+  >
+  <span id="title-count">0/30文字</span>
+
+  <br><br>
+
+  <textarea
+    id="articletxt"
+    name="articletxt"
+    style="width: 90%; height: 300px;"
+    placeholder="<本文>"
+    required
+    minlength="10"
+    oninput="updateCount('articletxt','body-count',5000)"
+  ></textarea>
+  <span id="body-count">0/5000文字</span>
+
+  <br><br>
+
+  <input type="submit" value="作成">
 </form>
-<a href="/article_list">記事一覧を見る</a>
-</body>
-</html>
+
+<p><a href="{{ url_for('show_article_list') }}">記事一覧を見る</a></p>
+
+<script>
+function updateCount(input, count, max) {
+    const text = document.getElementById(input);
+    const counter = document.getElementById(count);
+    counter.textContent = `${text.value.length}/${max}文字`;
+}
+</script>
+{% endblock %}

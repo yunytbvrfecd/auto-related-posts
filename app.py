@@ -1,18 +1,38 @@
-from flask import Flask, render_template, request, redirect, url_for
 import uuid
 import boto3
+import os
+
+from flask import Flask, render_template, request, redirect, url_for
 from extract_keywords import extract_keywords
+from flask_login import UserMixin, LoginManager, login_user, logout_user, login_required, current_user
 
 dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
 table = dynamodb.Table('test-articles')
 
+class User(UserMixin):
+    def __init__(self, id):
+        self.id = id
+
 app = Flask(__name__)
+app.secret_key = os.urandom(24)
+
+login_manager = LoginManager()
+login_manager.init_app(app)
+login_manager.login_view = 'login'
+
+@login_manager.user_loader
+def load_user(user_id):
+    return User(user_id)
+
+
+
 
 @app.route('/')
 def hello():
     return render_template('form.html')  # ← HTMLフォームに切り替えるとよいかも？
 
 @app.route('/postarticle', methods=['POST'])
+@login_required
 def postarticle():
     article_text = request.form['articletxt']
     title = request.form['title']
@@ -103,6 +123,33 @@ def get_article_by_id(article_id):
 def get_all_articles():
     response = table.scan()
     return response.get('Items', [])
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        username = request.form['username']
+        password = request.form['password']
+
+        if username == 'admin' and password == 'PASSWORD':
+            user = User(id=username)
+            login_user(user)
+            return redirect(url_for('form'))
+        else:
+            return '駄目っぽい'
+    else:
+        return '''
+        <form method="POST">
+            <input type=text name=username placeholder="Username">
+            <input type=password name=password placeholder="Password">
+            <input type=submit value=Login>
+        </form>
+        '''
+
+@app.route('/logout')
+@login_required
+def logout():
+    logout_user()
+    return redirect(url_for('/article_list'))
 
 if __name__ == '__main__':
     app.run(debug=True)
