@@ -1,21 +1,29 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>記事一覧</title>
-</head>
-<body>
+{% extends 'base.html' %}
+
+{% block title %}
+記事一覧
+{% endblock %}
+
+{% block content %}
+
+{% if query %}
+  <h2>「{{ query }}」の検索結果：{{ articles|length }}件</h2>
+  {% if articles|length == 0 %}
+    <p>該当する記事は見つかりませんでした。</p>
+  {% endif %}
+{% endif %}
+
 <ul>
 {% for article in articles %}
     {% if 'body' in article %}
         <li>
-            <a href = "/article/{{ article['article_id'] }}">
+            <a href="/article/{{ article['article_id'] }}">
                 <strong>{{ article['title'] }}</strong>
             </a>: {{ article['body'][:50] }}...
         </li>
     {% else %}
         <li>
-            <a href = "/article/{{ article['article_id'] }}">
+            <a href="/article/{{ article['article_id'] }}">
                 <strong>{{ article['title'] }}</strong>
             </a>: 本文なし
         </li>
@@ -23,6 +31,6 @@
 {% endfor %}
 </ul>
 
-<a href="/">新しい記事を投稿する</a>
-</body>
-</html>
+<a href="/login">新しい記事を投稿する</a>
+
+{% endblock %}

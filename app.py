@@ -2,9 +2,13 @@ import uuid
 import boto3
 import os
 
-from flask import Flask, render_template, request, redirect, url_for
+import pyotp
+from flask import Flask, render_template, request, redirect, url_for, session
 from extract_keywords import extract_keywords
 from flask_login import UserMixin, LoginManager, login_user, logout_user, login_required, current_user
+from werkzeug.security import generate_password_hash, check_password_hash
+from dotenv import load_dotenv
+
 
 dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
 table = dynamodb.Table('test-articles')
@@ -16,6 +20,10 @@ class User(UserMixin):
 app = Flask(__name__)
 app.secret_key = os.urandom(24)
 
+load_dotenv() #パスを暗号化したため、envを読み込む。
+app.secret_key = os.getenv("SECRET_KEY")
+secret = os.getenv("TOTP_SECRET")
+
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'
@@ -25,11 +33,16 @@ def load_user(user_id):
     return User(user_id)
 
 
-
-
 @app.route('/')
 def hello():
-    return render_template('form.html')  # ← HTMLフォームに切り替えるとよいかも？
+    response = table.scan()
+    items = response['Items']
+    return render_template('article_list.html',articles=items)
+
+@app.route('/form')
+@login_required
+def form():
+    return render_template('form.html')
 
 @app.route('/postarticle', methods=['POST'])
 @login_required
@@ -76,8 +89,8 @@ def postarticle():
 @app.route('/article_list')
 def show_article_list():
     response = table.scan()
-    items = response['Items']
-    return render_template('article_list.html',articles=items)
+    items = response.get('Items', [])
+    return render_template('article_list.html', articles=items, query=None)
 
 def find_related_articles(current_article, all_articles):
     current_keywords = set(current_article['keywords'])
@@ -130,12 +143,13 @@ def login():
         username = request.form['username']
         password = request.form['password']
 
-        if username == 'admin' and password == 'PASSWORD':
-            user = User(id=username)
-            login_user(user)
-            return redirect(url_for('form'))
+        stored_username = os.getenv("ADMIN_USERNAME")
+        stored_password_hash = os.getenv("ADMIN_PASSWORD")
+        if username == stored_username and check_password_hash(stored_password_hash, password):
+            session['pending_user'] = username  #認証前セッションマーク
+            return redirect(url_for('verify_totp'))
         else:
-            return '駄目っぽい'
+            return 'ログインに失敗。'
     else:
         return '''
         <form method="POST">
@@ -150,6 +164,47 @@ def login():
 def logout():
     logout_user()
     return redirect(url_for('/article_list'))
+
+@app.route('/search')
+def search():
+    query = request.args.get('q', '').strip()
+
+    if not query:
+        return redirect(url_for('article_list'))
+
+    response = table.scan()
+    all_articles = response.get('Items', [])
+
+    # タイトル、キーワードに検索語を含む記事を抽出（部分一致）
+    matching_articles = []
+    for article in all_articles:
+        title = article.get('title', '')
+        keywords = article.get('keywords', [])
+        if query in title or any(query in kw for kw in keywords):
+            matching_articles.append(article)
+
+    return render_template('article_list.html', articles=matching_articles, query=query)
+
+
+@app.route('/verify', methods=['GET', 'POST'])
+def verify_totp():
+    if 'pending_user' not in session:
+        return redirect(url_for('login'))
+
+    if request.method == 'POST':
+        code = request.form['totp_code']
+        totp = pyotp.TOTP(os.getenv("TOTP_SECRET"))
+
+        if totp.verify(code):
+            user = User(id=session.pop('pending_user'))
+            login_user(user)
+            return redirect(url_for('form'))
+        else:
+            return render_template('verify.html', error="TOTPコードが間違っています。")
+
+    # GETリクエストのときは認証フォームを表示
+    return render_template('verify.html')
+
 
 if __name__ == '__main__':
     app.run(debug=True)

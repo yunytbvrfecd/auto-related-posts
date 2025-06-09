@@ -1,0 +1,16 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container" style="max-width: 400px; margin: auto; padding-top: 50px;">
+    <h2 style="text-align:center;">2段階認証</h2>
+    <p style="text-align:center;">
+        Google Authenticator などのアプリに表示された6桁のコードを入力してください。
+    </p>
+    <form method="post">
+        <div style="display:flex; flex-direction:column; align-items:center;">
+            <input type="text" name="totp_code" placeholder="6桁のコード" required style="padding: 8px; width: 80%; margin-bottom: 10px;">
+            <button type="submit" style="padding: 8px 16px;">認証</button>
+        </div>
+    </form>
+</div>
+{% endblock %}
