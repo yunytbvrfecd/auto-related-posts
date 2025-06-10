@@ -163,14 +163,14 @@ def login():
 @login_required
 def logout():
     logout_user()
-    return redirect(url_for('/article_list'))
+    return redirect(url_for('show_article_list'))
 
 @app.route('/search')
 def search():
     query = request.args.get('q', '').strip()
 
     if not query:
-        return redirect(url_for('article_list'))
+        return redirect(url_for('show_article_list'))
 
     response = table.scan()
     all_articles = response.get('Items', [])
