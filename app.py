@@ -1,32 +1,35 @@
-import uuid
-import boto3
 import os
+import uuid
 
+import boto3
 import pyotp
-from flask import Flask, render_template, request, redirect, url_for, session
-from extract_keywords import extract_keywords
-from flask_login import UserMixin, LoginManager, login_user, logout_user, login_required, current_user
-from werkzeug.security import generate_password_hash, check_password_hash
 from dotenv import load_dotenv
+from flask import Flask, render_template, request, redirect, url_for, session
+from flask_login import UserMixin, LoginManager, login_user, logout_user, login_required
+from werkzeug.security import check_password_hash
 
+from extract_keywords import extract_keywords
 
 dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
 table = dynamodb.Table('test-articles')
+
 
 class User(UserMixin):
     def __init__(self, id):
         self.id = id
 
+
 app = Flask(__name__)
 app.secret_key = os.urandom(24)
 
-load_dotenv() #パスを暗号化したため、envを読み込む。
+load_dotenv()  # パスを暗号化したため、envを読み込む。
 app.secret_key = os.getenv("SECRET_KEY")
 secret = os.getenv("TOTP_SECRET")
 
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'
+
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -37,12 +40,14 @@ def load_user(user_id):
 def hello():
     response = table.scan()
     items = response['Items']
-    return render_template('article_list.html',articles=items)
+    return render_template('article_list.html', articles=items)
+
 
 @app.route('/form')
 @login_required
 def form():
     return render_template('form.html')
+
 
 @app.route('/postarticle', methods=['POST'])
 @login_required
@@ -86,11 +91,13 @@ def postarticle():
     except Exception as e:
         return f"保存中にエラーが発生しました: {e}"
 
+
 @app.route('/article_list')
 def show_article_list():
     response = table.scan()
     items = response.get('Items', [])
     return render_template('article_list.html', articles=items, query=None)
+
 
 def find_related_articles(current_article, all_articles):
     current_keywords = set(current_article['keywords'])
@@ -127,15 +134,18 @@ def show_article(article_id):
     except Exception as e:
         return f"取得エラー: {e}"
 
-#記事をIDで取得する関数
+
+# 記事をIDで取得する関数
 def get_article_by_id(article_id):
     response = table.get_item(Key={'article_id': article_id})
     return response.get('Item')
 
-#記事を全件取得する関数（最大1MBまで）
+
+# 記事を全件取得する関数（最大1MBまで）
 def get_all_articles():
     response = table.scan()
     return response.get('Items', [])
+
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -146,7 +156,7 @@ def login():
         stored_username = os.getenv("ADMIN_USERNAME")
         stored_password_hash = os.getenv("ADMIN_PASSWORD")
         if username == stored_username and check_password_hash(stored_password_hash, password):
-            session['pending_user'] = username  #認証前セッションマーク
+            session['pending_user'] = username  # 認証前セッションマーク
             return redirect(url_for('verify_totp'))
         else:
             return 'ログインに失敗。'
@@ -159,11 +169,13 @@ def login():
         </form>
         '''
 
+
 @app.route('/logout')
 @login_required
 def logout():
     logout_user()
     return redirect(url_for('show_article_list'))
+
 
 @app.route('/search')
 def search():
