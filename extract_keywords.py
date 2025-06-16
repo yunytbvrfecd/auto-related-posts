@@ -2,8 +2,11 @@ import boto3
 import requests
 
 def extract_keywords(text):
-    comprehend = boto3.client('comprehend', region_name='us-east-1')
-    response = comprehend.detect_key_phrases(Text=text, LanguageCode='ja')
+    clean_text = re.sub(r'\r\n?|\n', '\n', text)
+    
+    comprehend = boto3.client('comprehend', region_name='ap-northeast-1')
+    response = comprehend.detect_key_phrases(Text=clean_text, LanguageCode='ja')
+    
     keywords = [phrase['Text'] for phrase in response['KeyPhrases']]
     return keywords
 
