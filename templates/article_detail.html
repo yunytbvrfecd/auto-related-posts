@@ -6,7 +6,7 @@
 
 {% block content %}
   <h1>{{ article.title }}</h1>
-  <p><strong>本文</strong><br>{{ article.body }}</p>
+  <p><strong>本文</strong><br>{{ article.body | replace('\n', '<br>') | safe }}</p>
   <p><strong>キーワード:</strong> {{ article.keywords }}</p>
 
   <h2>関連記事</h2>
