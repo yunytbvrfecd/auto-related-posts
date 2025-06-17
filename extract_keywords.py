@@ -1,5 +1,6 @@
 import boto3
 import requests
+import re
 
 def extract_keywords(text):
     clean_text = re.sub(r'\r\n?|\n', '\n', text)
