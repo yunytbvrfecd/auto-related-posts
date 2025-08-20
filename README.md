@@ -19,7 +19,7 @@ AWS の練習を兼ねて作った Flask の Web アプリです。
 
 ## 構成図
 
-![architecture](docs/architecture.png)
+![architecture](構成図.png)
 
 - Web アプリ: Flask  
 - 実行環境: gunicorn  
