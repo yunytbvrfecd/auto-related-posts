@@ -1,2 +1,7 @@
 .env
+
 privkey.pem
+
+.venv/
+
+__pycache__/
